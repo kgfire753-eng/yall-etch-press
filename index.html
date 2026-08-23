@@ -6,6 +6,17 @@
 <title>Y'all Get Etched</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f7f1e8;color:#2b211a}header{background:#241a15;color:#fff;text-align:center;padding:25px 15px}.logo{width:190px;max-width:70%;border-radius:50%;margin-bottom:10px}header h1{margin:5px 0;font-size:34px}header p{margin:5px 0;font-size:15px}.hero{text-align:center;padding:45px 20px 25px}.hero h2{font-size:30px;margin-bottom:12px}.hero p{max-width:650px;margin:auto;line-height:1.6}.services{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;max-width:1000px;margin:20px auto 50px;padding:0 20px}.card{background:#fff;border-radius:14px;padding:25px 18px;text-align:center;box-shadow:0 5px 15px rgba(0,0,0,.10)}.card h3{margin-top:0}.coming{background:#241a15;color:#fff;display:inline-block;padding:6px 12px;border-radius:20px;margin-top:8px;font-size:13px;font-weight:bold}.gallery-section{background:#fff;padding:45px 20px}.gallery-section h2{text-align:center;font-size:30px;margin-top:0}.gallery-section p{text-align:center;margin-bottom:30px}.gallery{max-width:1000px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px}.gallery img{width:100%;height:260px;object-fit:cover;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.15)}.idea{text-align:center;padding:50px 20px}.idea h2{font-size:30px}.idea p{max-width:650px;margin:auto;line-height:1.6}footer{background:#241a15;color:#fff;text-align:center;padding:25px 15px}
+.cta-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:13px 24px;border-radius:30px;font-size:16px;font-weight:bold;text-decoration:none;line-height:1.2;border:2px solid transparent}
+.btn svg{width:18px;height:18px;flex:none}
+.btn-primary{background:#c25e1d;color:#fff}
+.btn-primary:hover{background:#a94d14}
+.btn-outline{background:#fff;color:#241a15;border-color:#fff}
+.btn-outline:hover{background:#f7f1e8}
+.mobile-cta{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;gap:10px;padding:10px 12px;background:#241a15;box-shadow:0 -4px 16px rgba(0,0,0,.3)}
+.mobile-cta .btn{flex:1;padding:13px 8px;font-size:15px}
+@media(min-width:700px){.mobile-cta{display:none}}
+@media(max-width:699px){body{padding-bottom:86px}}
 </style>
 </head>
 <body>
@@ -13,6 +24,16 @@
 <img src="Logo.png" alt="Y'all Get Etched Logo" class="logo">
 <h1>Y'all Get Etched</h1>
 <p>Custom Made • One of a Kind</p>
+<div class="cta-row">
+<a class="btn btn-primary" href="sms:+17656985522?&amp;body=Hi%20Y'all%20Get%20Etched!%20I'd%20like%20a%20quote%20on%20a%20custom%20piece.">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+Text for a Quote
+</a>
+<a class="btn btn-outline" href="mailto:Kgfire752@gmail.com?subject=Custom%20Quote%20Request">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+Email Us
+</a>
+</div>
 </header>
 <section class="hero">
 <h2>Make It Personal.</h2>
@@ -41,5 +62,15 @@
 <p>Bring us a photo, logo, wording or even a rough sketch. We'll work with you to turn your idea into a custom piece made just for you.</p>
 </section>
 <footer><strong>Y'all Get Etched</strong><br>Custom Made • One of a Kind</footer>
+<nav class="mobile-cta" aria-label="Contact and orders">
+<a class="btn btn-primary" href="sms:+17656985522?&amp;body=Hi%20Y'all%20Get%20Etched!%20I'd%20like%20a%20quote%20on%20a%20custom%20piece.">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+Get a Quote
+</a>
+<a class="btn btn-outline" href="mailto:Kgfire752@gmail.com?subject=Custom%20Quote%20Request">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+Email
+</a>
+</nav>
 </body>
 </html>
