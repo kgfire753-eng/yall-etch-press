@@ -17,6 +17,35 @@
 .mobile-cta .btn{flex:1;padding:13px 8px;font-size:15px}
 @media(min-width:700px){.mobile-cta{display:none}}
 @media(max-width:699px){body{padding-bottom:86px}}
+.shop{background:#fff;padding:45px 20px}
+.shop h2{text-align:center;font-size:30px;margin-top:0}
+.shop .sub{text-align:center;margin:0 auto 24px;max-width:650px;line-height:1.6}
+.shop-inner{max-width:1000px;margin:auto}
+.admin-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-bottom:22px}
+.btn-sm{min-height:40px;padding:9px 18px;font-size:14px;border-radius:24px;font-weight:bold;border:2px solid #241a15;background:#fff;color:#241a15;cursor:pointer;font-family:inherit}
+.btn-sm:hover{background:#f7f1e8}
+.btn-sm.solid{background:#241a15;color:#fff}
+.item-form{display:none;background:#f7f1e8;border-radius:14px;padding:18px;margin-bottom:24px;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.item-form.open{display:flex}
+.field{display:flex;flex-direction:column;gap:5px;flex:1 1 180px}
+.field label{font-size:13px;font-weight:bold}
+.field input,.field textarea{font-family:inherit;font-size:15px;padding:11px 12px;border:2px solid #d8cbba;border-radius:10px;background:#fff;color:#2b211a;min-height:46px}
+.field input:focus,.field textarea:focus{outline:none;border-color:#c25e1d}
+.field textarea{resize:vertical;min-height:46px}
+.item-form .actions{display:flex;gap:10px;flex:1 1 100%}
+.items{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.item{background:#f7f1e8;border-radius:14px;padding:20px 18px;display:flex;flex-direction:column;gap:8px;box-shadow:0 5px 15px rgba(0,0,0,.08)}
+.item h3{margin:0;font-size:19px}
+.item .price{font-size:24px;font-weight:bold;color:#c25e1d}
+.item .desc{margin:0;font-size:15px;line-height:1.5}
+.item .item-actions{margin-top:auto;display:flex;gap:10px;padding-top:6px}
+.item .btn-sm{flex:1}
+.btn-sm.danger{border-color:#a3341a;color:#a3341a}
+.btn-sm.danger:hover{background:#fbe9e4}
+.empty{text-align:center;padding:34px 18px;border:2px dashed #d8cbba;border-radius:14px;color:#6d5c4c}
+.buy-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 18px;border-radius:24px;background:#c25e1d;color:#fff;text-decoration:none;font-weight:bold;font-size:15px}
+.buy-link:hover{background:#a94d14}
+.admin-note{text-align:center;font-size:13px;color:#6d5c4c;margin-top:18px}
 </style>
 </head>
 <body>
@@ -57,6 +86,39 @@ Email Us
 <img src="work6.jpg" alt="Custom engraving">
 </div>
 </section>
+<section class="shop" id="for-sale">
+<div class="shop-inner">
+<h2>Items For Sale</h2>
+<p class="sub">Ready-made pieces available right now. Text or email us to claim one.</p>
+
+<div class="admin-bar">
+<button type="button" class="btn-sm" id="adminToggle" aria-pressed="false">Manage Items</button>
+<button type="button" class="btn-sm solid" id="showFormBtn" hidden>+ Add Item</button>
+</div>
+
+<form class="item-form" id="itemForm" aria-label="Add an item for sale">
+<div class="field">
+<label for="itemName">Item name</label>
+<input type="text" id="itemName" name="itemName" required maxlength="60" placeholder="Walnut cutting board">
+</div>
+<div class="field">
+<label for="itemPrice">Price ($)</label>
+<input type="number" id="itemPrice" name="itemPrice" required min="0" step="0.01" inputmode="decimal" placeholder="45.00">
+</div>
+<div class="field" style="flex:1 1 100%">
+<label for="itemDesc">Description (optional)</label>
+<textarea id="itemDesc" name="itemDesc" rows="2" maxlength="200" placeholder="12x18 walnut, engraved family name"></textarea>
+</div>
+<div class="actions">
+<button type="submit" class="btn-sm solid" id="saveBtn">Save Item</button>
+<button type="button" class="btn-sm" id="cancelBtn">Cancel</button>
+</div>
+</form>
+
+<div class="items" id="itemList"></div>
+<p class="admin-note" id="adminNote" hidden>Your items are saved in this browser only.</p>
+</div>
+</section>
 <section class="idea">
 <h2>Got an Idea?</h2>
 <p>Bring us a photo, logo, wording or even a rough sketch. We'll work with you to turn your idea into a custom piece made just for you.</p>
@@ -72,5 +134,6 @@ Get a Quote
 Email
 </a>
 </nav>
+<script src="shop.js"></script>
 </body>
 </html>
