@@ -1,10 +1,10 @@
 (function () {
-  var STORE_KEY = "yge_items_v1";
-  var SESSION_KEY = "yge_admin_session";
-  var PASS_KEY = "yge_admin_pass";
+  var LEGACY_KEY = "yge_items_v1";
+  var IMPORTED_KEY = "yge_imported_v1";
   var MAX_DIM = 900;
 
   var list = document.getElementById("itemList");
+  var status = document.getElementById("status");
   var form = document.getElementById("itemForm");
   var nameInput = document.getElementById("itemName");
   var priceInput = document.getElementById("itemPrice");
@@ -20,6 +20,8 @@
   var lockForm = document.getElementById("lockForm");
   var passInput = document.getElementById("adminPass");
   var pass2Input = document.getElementById("adminPass2");
+  var currentInput = document.getElementById("currentPass");
+  var currentField = document.getElementById("currentField");
   var confirmField = document.getElementById("confirmField");
   var passLabel = document.getElementById("adminPassLabel");
   var lockIntro = document.getElementById("lockIntro");
@@ -29,63 +31,56 @@
   var changePassBtn = document.getElementById("changePassBtn");
 
   var editingId = null;
+  var editingPhoto = ""; // photo the item had when editing started
   var admin = false;
   var items = [];
   var pendingPhoto = "";
-  var setupMode = false;
+  var changingPass = false;
+  var loaded = false;
 
-  function hash(str) {
-    var h = 5381;
-    for (var i = 0; i < str.length; i++) {
-      h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  /* ---------- server calls ---------- */
+
+  function api(path, options) {
+    var opts = options || {};
+    var init = { method: opts.method || "GET", credentials: "same-origin" };
+    if (opts.body !== undefined) {
+      init.headers = { "Content-Type": "application/json" };
+      init.body = JSON.stringify(opts.body);
     }
-    return h;
+    return fetch(path, init).then(function (res) {
+      return res
+        .json()
+        .catch(function () {
+          return {};
+        })
+        .then(function (data) {
+          if (!res.ok) {
+            var err = new Error(data.error || "Something went wrong. Please try again.");
+            err.status = res.status;
+            throw err;
+          }
+          return data;
+        });
+    });
   }
 
-  function storedPass() {
-    try {
-      return localStorage.getItem(PASS_KEY) || "";
-    } catch (e) {
-      return "";
+  function say(message, kind) {
+    if (!message) {
+      status.hidden = true;
+      status.textContent = "";
+      return;
     }
+    status.textContent = message;
+    status.className = "status " + (kind === "ok" ? "ok" : "err");
+    status.hidden = false;
   }
 
-  function savePass(value) {
-    try {
-      localStorage.setItem(PASS_KEY, String(hash(value)));
-      return true;
-    } catch (e) {
-      window.alert("Couldn't save the password — browser storage is blocked.");
-      return false;
-    }
+  function busy(on) {
+    saveBtn.disabled = on;
+    saveBtn.textContent = on ? "Saving…" : editingId ? "Update Item" : "Save Item";
   }
 
-  function load() {
-    try {
-      var raw = localStorage.getItem(STORE_KEY);
-      items = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(items)) items = [];
-    } catch (e) {
-      items = [];
-    }
-    try {
-      admin = sessionStorage.getItem(SESSION_KEY) === "1";
-    } catch (e) {
-      admin = false;
-    }
-  }
-
-  function save() {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(items));
-      return true;
-    } catch (e) {
-      window.alert(
-        "Couldn't save — your browser storage is full. Try removing an item or using a smaller photo."
-      );
-      return false;
-    }
-  }
+  /* ---------- helpers ---------- */
 
   function money(n) {
     return "$" + Number(n).toFixed(2);
@@ -93,28 +88,21 @@
 
   function smsLink(item) {
     var body =
-      "Hi Y'all Get Etched! I'm interested in the " +
-      item.name +
-      " (" +
-      money(item.price) +
-      ").";
+      "Hi Y'all Get Etched! I'm interested in the " + item.name + " (" + money(item.price) + ").";
     return "sms:+17656985522?&body=" + encodeURIComponent(body);
   }
 
-  /* Shrink an image file down to a data URL that fits in local storage. */
+  /* Shrink an image before it ever leaves the browser. */
   function readPhoto(file, done) {
     var reader = new FileReader();
     reader.onload = function () {
       var img = new Image();
       img.onload = function () {
-        var w = img.width;
-        var h = img.height;
-        var scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        var scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
         var canvas = document.createElement("canvas");
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        var ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
         try {
           done(canvas.toDataURL("image/jpeg", 0.72));
         } catch (e) {
@@ -145,8 +133,18 @@
     }
   }
 
+  /* ---------- rendering ---------- */
+
   function render() {
     list.textContent = "";
+
+    if (!loaded) {
+      var loading = document.createElement("p");
+      loading.className = "loading";
+      loading.textContent = "Loading items…";
+      list.appendChild(loading);
+      return;
+    }
 
     if (items.length === 0) {
       var empty = document.createElement("p");
@@ -160,15 +158,24 @@
 
     items.forEach(function (item) {
       var card = document.createElement("article");
-      card.className = "item";
+      card.className = "item" + (item.sold ? " is-sold" : "");
 
       if (item.photo) {
+        var top = document.createElement("div");
+        top.className = "item-top";
         var photo = document.createElement("img");
         photo.className = "item-photo";
         photo.src = item.photo;
         photo.alt = item.name;
         photo.loading = "lazy";
-        card.appendChild(photo);
+        top.appendChild(photo);
+        if (item.sold) {
+          var badge = document.createElement("span");
+          badge.className = "sold-badge";
+          badge.textContent = "SOLD";
+          top.appendChild(badge);
+        }
+        card.appendChild(top);
       }
 
       var h3 = document.createElement("h3");
@@ -179,6 +186,13 @@
       price.className = "price";
       price.textContent = money(item.price);
       card.appendChild(price);
+
+      if (item.sold && !item.photo) {
+        var note = document.createElement("p");
+        note.className = "sold-note";
+        note.textContent = "SOLD";
+        card.appendChild(note);
+      }
 
       if (item.desc) {
         var desc = document.createElement("p");
@@ -191,26 +205,22 @@
       actions.className = "item-actions";
 
       if (admin) {
-        var editBtn = document.createElement("button");
-        editBtn.type = "button";
-        editBtn.className = "btn-sm";
-        editBtn.textContent = "Edit";
-        editBtn.addEventListener("click", function () {
-          startEdit(item.id);
-        });
-
-        var delBtn = document.createElement("button");
-        delBtn.type = "button";
-        delBtn.className = "btn-sm danger";
-        delBtn.textContent = "Remove";
-        delBtn.setAttribute("aria-label", "Remove " + item.name);
-        delBtn.addEventListener("click", function () {
-          removeItem(item.id);
-        });
-
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-      } else {
+        actions.appendChild(
+          button("btn-sm", "Edit", function () {
+            startEdit(item.id);
+          })
+        );
+        actions.appendChild(
+          button("btn-sm", item.sold ? "Mark Available" : "Mark Sold", function () {
+            toggleSold(item);
+          })
+        );
+        actions.appendChild(
+          button("btn-sm danger", "Remove", function () {
+            removeItem(item);
+          })
+        );
+      } else if (!item.sold) {
         var buy = document.createElement("a");
         buy.className = "buy-link";
         buy.href = smsLink(item);
@@ -223,6 +233,15 @@
     });
   }
 
+  function button(className, label, onClick) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = className;
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
   function syncAdminUI() {
     adminToggle.textContent = admin ? "Lock Items" : "Manage Items";
     adminToggle.setAttribute("aria-pressed", admin ? "true" : "false");
@@ -232,38 +251,101 @@
     if (!admin) closeForm();
   }
 
-  function openLock(forceSetup) {
-    setupMode = forceSetup === true || !storedPass();
-    if (setupMode) {
-      lockIntro.textContent = forceSetup
-        ? "Pick a new manager password."
-        : "First time here? Create a manager password so only you can add or edit items.";
+  /* ---------- data ---------- */
+
+  function loadItems() {
+    return api("/api/items")
+      .then(function (data) {
+        items = data.items || [];
+        loaded = true;
+        say("");
+        render();
+      })
+      .catch(function (err) {
+        loaded = true;
+        items = [];
+        say(err.message, "err");
+        render();
+      });
+  }
+
+  function toggleSold(item) {
+    api("/api/items/" + item.id, { method: "PATCH", body: { sold: !item.sold } })
+      .then(function (data) {
+        items = items.map(function (i) {
+          return i.id === data.item.id ? data.item : i;
+        });
+        render();
+      })
+      .catch(handleWriteError);
+  }
+
+  function removeItem(item) {
+    if (!window.confirm('Remove "' + item.name + '" from the shop?')) return;
+    api("/api/items/" + item.id, { method: "DELETE" })
+      .then(function () {
+        items = items.filter(function (i) {
+          return i.id !== item.id;
+        });
+        if (editingId === item.id) closeForm();
+        say("");
+        render();
+      })
+      .catch(handleWriteError);
+  }
+
+  function handleWriteError(err) {
+    say(err.message, "err");
+    if (err.status === 401) {
+      admin = false;
+      syncAdminUI();
+      render();
+    }
+  }
+
+  /* ---------- lock / password ---------- */
+
+  function openLock(forChange) {
+    changingPass = forChange === true;
+    currentField.hidden = !changingPass;
+    confirmField.hidden = !changingPass;
+    if (changingPass) {
+      lockIntro.textContent = "Enter your current password, then pick a new one.";
       passLabel.textContent = "New password";
       passInput.setAttribute("autocomplete", "new-password");
-      passInput.placeholder = "Create a password";
-      confirmField.hidden = false;
-      lockSubmitBtn.textContent = forceSetup ? "Save Password" : "Set Password";
+      passInput.placeholder = "At least 8 characters";
+      lockSubmitBtn.textContent = "Save Password";
     } else {
       lockIntro.textContent = "Enter your manager password.";
       passLabel.textContent = "Password";
       passInput.setAttribute("autocomplete", "current-password");
       passInput.placeholder = "Enter password";
-      confirmField.hidden = true;
       lockSubmitBtn.textContent = "Unlock";
     }
     lockError.hidden = true;
     lockForm.classList.add("open");
+    currentInput.value = "";
     passInput.value = "";
     pass2Input.value = "";
-    passInput.focus();
+    (changingPass ? currentInput : passInput).focus();
   }
 
   function closeLock() {
     lockForm.classList.remove("open");
     lockForm.reset();
     lockError.hidden = true;
-    setupMode = false;
+    changingPass = false;
   }
+
+  function failLock(message) {
+    lockError.textContent = message;
+    lockError.hidden = false;
+    passInput.value = "";
+    pass2Input.value = "";
+    passInput.focus();
+  }
+
+  /* ---------- add / edit form ---------- */
 
   function openForm() {
     form.classList.add("open");
@@ -275,6 +357,8 @@
     form.reset();
     setPreview("");
     editingId = null;
+    editingPhoto = "";
+    saveBtn.disabled = false;
     saveBtn.textContent = "Save Item";
   }
 
@@ -285,76 +369,162 @@
     if (!item) return;
     closeForm();
     editingId = id;
+    editingPhoto = item.photo || "";
     nameInput.value = item.name;
     priceInput.value = item.price;
     descInput.value = item.desc || "";
-    setPreview(item.photo || "");
+    setPreview(editingPhoto);
     saveBtn.textContent = "Update Item";
     openForm();
   }
 
-  function removeItem(id) {
-    items = items.filter(function (i) {
-      return i.id !== id;
-    });
-    if (editingId === id) closeForm();
-    save();
-    render();
+  // Uploads the photo if it's newly chosen, then resolves to the fields
+  // the API expects. Returns null when the photo should stay untouched.
+  function resolvePhoto() {
+    var isNew = pendingPhoto.indexOf("data:") === 0;
+    if (isNew) {
+      return api("/api/upload", { method: "POST", body: { dataUrl: pendingPhoto } }).then(
+        function (data) {
+          return { photoUrl: data.url, photoPathname: data.pathname };
+        }
+      );
+    }
+    if (editingId && pendingPhoto === editingPhoto) {
+      return Promise.resolve(null); // unchanged
+    }
+    // cleared, or creating with no photo
+    return Promise.resolve({ photoUrl: "", photoPathname: "" });
   }
+
+  /* ---------- one-time import of browser-only items ---------- */
+
+  function legacyItems() {
+    try {
+      if (localStorage.getItem(IMPORTED_KEY) === "1") return [];
+      var raw = localStorage.getItem(LEGACY_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function markImported() {
+    try {
+      localStorage.setItem(IMPORTED_KEY, "1");
+    } catch (e) {
+      /* storage unavailable */
+    }
+  }
+
+  function offerImport() {
+    var old = legacyItems();
+    if (!old.length) return;
+    var msg =
+      "Found " +
+      old.length +
+      (old.length === 1 ? " item" : " items") +
+      " saved in this browser from before. Publish them to the live shop now?";
+    if (!window.confirm(msg)) {
+      markImported();
+      return;
+    }
+
+    say("Publishing your saved items…", "ok");
+
+    var chain = Promise.resolve();
+    old.forEach(function (item) {
+      chain = chain.then(function () {
+        var photo = String(item.photo || "");
+        var step = photo.indexOf("data:") === 0
+          ? api("/api/upload", { method: "POST", body: { dataUrl: photo } })
+          : Promise.resolve(null);
+        return step.then(function (up) {
+          return api("/api/items", {
+            method: "POST",
+            body: {
+              name: item.name,
+              price: item.price,
+              desc: item.desc || "",
+              photoUrl: up ? up.url : "",
+              photoPathname: up ? up.pathname : "",
+            },
+          });
+        });
+      });
+    });
+
+    chain
+      .then(function () {
+        markImported();
+        return loadItems();
+      })
+      .then(function () {
+        say("Your saved items are now live for everyone.", "ok");
+      })
+      .catch(function (err) {
+        say("Couldn't publish all of them: " + err.message, "err");
+        loadItems();
+      });
+  }
+
+  /* ---------- events ---------- */
 
   adminToggle.addEventListener("click", function () {
     if (admin) {
+      api("/api/session", { method: "DELETE" }).catch(function () {});
       admin = false;
-      try {
-        sessionStorage.removeItem(SESSION_KEY);
-      } catch (e) {
-        /* storage unavailable */
-      }
       closeLock();
       syncAdminUI();
+      say("");
       render();
       return;
     }
     if (lockForm.classList.contains("open")) closeLock();
-    else openLock();
+    else openLock(false);
   });
-
-  function failLock(message) {
-    lockError.textContent = message;
-    lockError.hidden = false;
-    passInput.value = "";
-    pass2Input.value = "";
-    passInput.focus();
-  }
 
   lockForm.addEventListener("submit", function (e) {
     e.preventDefault();
     var entered = passInput.value;
+    lockSubmitBtn.disabled = true;
 
-    if (setupMode) {
-      if (entered.length < 4) {
-        failLock("Use at least 4 characters.");
+    var request;
+    if (changingPass) {
+      if (entered.length < 8) {
+        lockSubmitBtn.disabled = false;
+        failLock("Use at least 8 characters.");
         return;
       }
       if (entered !== pass2Input.value) {
+        lockSubmitBtn.disabled = false;
         failLock("Those two passwords don't match.");
         return;
       }
-      if (!savePass(entered)) return;
-    } else if (String(hash(entered)) !== storedPass()) {
-      failLock("Wrong password. Try again.");
-      return;
+      request = api("/api/session", {
+        method: "PUT",
+        body: { current: currentInput.value, next: entered },
+      });
+    } else {
+      request = api("/api/session", { method: "POST", body: { password: entered } });
     }
 
-    admin = true;
-    try {
-      sessionStorage.setItem(SESSION_KEY, "1");
-    } catch (e) {
-      /* storage unavailable */
-    }
-    closeLock();
-    syncAdminUI();
-    render();
+    request
+      .then(function () {
+        var wasChange = changingPass;
+        admin = true;
+        closeLock();
+        syncAdminUI();
+        render();
+        if (wasChange) say("Password updated.", "ok");
+        else offerImport();
+      })
+      .catch(function (err) {
+        failLock(err.message);
+      })
+      .then(function () {
+        lockSubmitBtn.disabled = false;
+      });
   });
 
   lockCancelBtn.addEventListener("click", closeLock);
@@ -394,36 +564,57 @@
     var name = nameInput.value.trim();
     var price = parseFloat(priceInput.value);
     var desc = descInput.value.trim();
-    var photo = pendingPhoto;
     if (!name || isNaN(price) || price < 0) return;
 
-    var snapshot = items.slice();
+    var wasEditing = editingId;
+    busy(true);
+    say("");
 
-    if (editingId) {
-      items = items.map(function (i) {
-        return i.id === editingId
-          ? { id: i.id, name: name, price: price, desc: desc, photo: photo }
-          : i;
+    resolvePhoto()
+      .then(function (photo) {
+        var payload = { name: name, price: price, desc: desc };
+        if (photo) {
+          payload.photoUrl = photo.photoUrl;
+          payload.photoPathname = photo.photoPathname;
+        }
+        if (wasEditing) {
+          var current = items.filter(function (i) {
+            return i.id === wasEditing;
+          })[0];
+          payload.sold = current ? current.sold : false;
+          return api("/api/items/" + wasEditing, { method: "PATCH", body: payload });
+        }
+        return api("/api/items", { method: "POST", body: payload });
+      })
+      .then(function (data) {
+        if (wasEditing) {
+          items = items.map(function (i) {
+            return i.id === data.item.id ? data.item : i;
+          });
+        } else {
+          items.unshift(data.item);
+        }
+        closeForm();
+        render();
+      })
+      .catch(function (err) {
+        busy(false);
+        handleWriteError(err);
       });
-    } else {
-      items.push({
-        id: String(Date.now()) + Math.random().toString(16).slice(2, 6),
-        name: name,
-        price: price,
-        desc: desc,
-        photo: photo,
-      });
-    }
-
-    if (!save()) {
-      items = snapshot;
-      return;
-    }
-    closeForm();
-    render();
   });
 
-  load();
-  syncAdminUI();
+  /* ---------- start ---------- */
+
   render();
+  api("/api/session")
+    .then(function (data) {
+      admin = data.authed === true;
+    })
+    .catch(function () {
+      admin = false;
+    })
+    .then(function () {
+      syncAdminUI();
+      return loadItems();
+    });
 })();
