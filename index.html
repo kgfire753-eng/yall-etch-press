@@ -28,6 +28,7 @@
 .item-form{display:none;background:#f7f1e8;border-radius:14px;padding:18px;margin-bottom:24px;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .item-form.open{display:flex}
 .field{display:flex;flex-direction:column;gap:5px;flex:1 1 180px}
+.field[hidden]{display:none}
 .field label{font-size:13px;font-weight:bold}
 .field input,.field textarea{font-family:inherit;font-size:15px;padding:11px 12px;border:2px solid #d8cbba;border-radius:10px;background:#fff;color:#2b211a;min-height:46px}
 .field input:focus,.field textarea:focus{outline:none;border-color:#c25e1d}
@@ -49,6 +50,7 @@
 .lock-form{display:none;justify-content:center;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:22px}
 .lock-form.open{display:flex}
 .lock-form .field{flex:0 1 220px}
+.lock-intro{flex:1 1 100%;text-align:center;margin:0 0 4px;font-size:14px;line-height:1.5;color:#6d5c4c}
 .lock-error{flex:1 1 100%;text-align:center;margin:0;font-size:14px;font-weight:bold;color:#a3341a}
 .item-photo{width:100%;height:190px;object-fit:cover;border-radius:10px;background:#e6dbcb;display:block}
 .photo-row{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
@@ -104,14 +106,20 @@ Email Us
 <div class="admin-bar">
 <button type="button" class="btn-sm" id="adminToggle" aria-pressed="false">Manage Items</button>
 <button type="button" class="btn-sm solid" id="showFormBtn" hidden>+ Add Item</button>
+<button type="button" class="btn-sm" id="changePassBtn" hidden>Change Password</button>
 </div>
 
-<form class="lock-form" id="lockForm" aria-label="Enter manager password">
+<form class="lock-form" id="lockForm" aria-label="Manager password">
+<p class="lock-intro" id="lockIntro">Enter your manager password.</p>
 <div class="field">
-<label for="adminPass">Password</label>
+<label for="adminPass" id="adminPassLabel">Password</label>
 <input type="password" id="adminPass" name="adminPass" autocomplete="current-password" placeholder="Enter password">
 </div>
-<button type="submit" class="btn-sm solid">Unlock</button>
+<div class="field" id="confirmField" hidden>
+<label for="adminPass2">Confirm password</label>
+<input type="password" id="adminPass2" name="adminPass2" autocomplete="new-password" placeholder="Re-enter password">
+</div>
+<button type="submit" class="btn-sm solid" id="lockSubmitBtn">Unlock</button>
 <button type="button" class="btn-sm" id="lockCancelBtn">Cancel</button>
 <p class="lock-error" id="lockError" role="alert" hidden>Wrong password. Try again.</p>
 </form>
@@ -144,7 +152,7 @@ Email Us
 </form>
 
 <div class="items" id="itemList"></div>
-<p class="admin-note" id="adminNote" hidden>Items and photos are saved in this browser only. You&apos;ll be locked out again when you close this tab.</p>
+<p class="admin-note" id="adminNote" hidden>Add a photo to any item with the <strong>Photo</strong> picker. Items, photos and your password are saved in this browser only, and you&apos;ll be locked out again when you close this tab.</p>
 </div>
 </section>
 <section class="idea">

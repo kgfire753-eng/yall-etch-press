@@ -1,7 +1,7 @@
 (function () {
   var STORE_KEY = "yge_items_v1";
   var SESSION_KEY = "yge_admin_session";
-  var PASS_HASH = 3338776954; // hash of the manager password
+  var PASS_KEY = "yge_admin_pass";
   var MAX_DIM = 900;
 
   var list = document.getElementById("itemList");
@@ -19,13 +19,20 @@
   var adminNote = document.getElementById("adminNote");
   var lockForm = document.getElementById("lockForm");
   var passInput = document.getElementById("adminPass");
+  var pass2Input = document.getElementById("adminPass2");
+  var confirmField = document.getElementById("confirmField");
+  var passLabel = document.getElementById("adminPassLabel");
+  var lockIntro = document.getElementById("lockIntro");
+  var lockSubmitBtn = document.getElementById("lockSubmitBtn");
   var lockError = document.getElementById("lockError");
   var lockCancelBtn = document.getElementById("lockCancelBtn");
+  var changePassBtn = document.getElementById("changePassBtn");
 
   var editingId = null;
   var admin = false;
   var items = [];
   var pendingPhoto = "";
+  var setupMode = false;
 
   function hash(str) {
     var h = 5381;
@@ -33,6 +40,24 @@
       h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
     }
     return h;
+  }
+
+  function storedPass() {
+    try {
+      return localStorage.getItem(PASS_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function savePass(value) {
+    try {
+      localStorage.setItem(PASS_KEY, String(hash(value)));
+      return true;
+    } catch (e) {
+      window.alert("Couldn't save the password — browser storage is blocked.");
+      return false;
+    }
   }
 
   function load() {
@@ -202,14 +227,34 @@
     adminToggle.textContent = admin ? "Lock Items" : "Manage Items";
     adminToggle.setAttribute("aria-pressed", admin ? "true" : "false");
     showFormBtn.hidden = !admin;
+    changePassBtn.hidden = !admin;
     adminNote.hidden = !admin;
     if (!admin) closeForm();
   }
 
-  function openLock() {
+  function openLock(forceSetup) {
+    setupMode = forceSetup === true || !storedPass();
+    if (setupMode) {
+      lockIntro.textContent = forceSetup
+        ? "Pick a new manager password."
+        : "First time here? Create a manager password so only you can add or edit items.";
+      passLabel.textContent = "New password";
+      passInput.setAttribute("autocomplete", "new-password");
+      passInput.placeholder = "Create a password";
+      confirmField.hidden = false;
+      lockSubmitBtn.textContent = forceSetup ? "Save Password" : "Set Password";
+    } else {
+      lockIntro.textContent = "Enter your manager password.";
+      passLabel.textContent = "Password";
+      passInput.setAttribute("autocomplete", "current-password");
+      passInput.placeholder = "Enter password";
+      confirmField.hidden = true;
+      lockSubmitBtn.textContent = "Unlock";
+    }
     lockError.hidden = true;
     lockForm.classList.add("open");
     passInput.value = "";
+    pass2Input.value = "";
     passInput.focus();
   }
 
@@ -217,6 +262,7 @@
     lockForm.classList.remove("open");
     lockForm.reset();
     lockError.hidden = true;
+    setupMode = false;
   }
 
   function openForm() {
@@ -273,14 +319,33 @@
     else openLock();
   });
 
+  function failLock(message) {
+    lockError.textContent = message;
+    lockError.hidden = false;
+    passInput.value = "";
+    pass2Input.value = "";
+    passInput.focus();
+  }
+
   lockForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    if (hash(passInput.value) !== PASS_HASH) {
-      lockError.hidden = false;
-      passInput.value = "";
-      passInput.focus();
+    var entered = passInput.value;
+
+    if (setupMode) {
+      if (entered.length < 4) {
+        failLock("Use at least 4 characters.");
+        return;
+      }
+      if (entered !== pass2Input.value) {
+        failLock("Those two passwords don't match.");
+        return;
+      }
+      if (!savePass(entered)) return;
+    } else if (String(hash(entered)) !== storedPass()) {
+      failLock("Wrong password. Try again.");
       return;
     }
+
     admin = true;
     try {
       sessionStorage.setItem(SESSION_KEY, "1");
@@ -293,6 +358,11 @@
   });
 
   lockCancelBtn.addEventListener("click", closeLock);
+
+  changePassBtn.addEventListener("click", function () {
+    closeForm();
+    openLock(true);
+  });
 
   photoInput.addEventListener("change", function () {
     var file = photoInput.files && photoInput.files[0];
