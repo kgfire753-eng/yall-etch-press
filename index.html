@@ -28,6 +28,7 @@
 .item-form{display:none;background:#f7f1e8;border-radius:14px;padding:18px;margin-bottom:24px;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .item-form.open{display:flex}
 .field{display:flex;flex-direction:column;gap:5px;flex:1 1 180px}
+.field[hidden]{display:none}
 .field label{font-size:13px;font-weight:bold}
 .field input,.field textarea{font-family:inherit;font-size:15px;padding:11px 12px;border:2px solid #d8cbba;border-radius:10px;background:#fff;color:#2b211a;min-height:46px}
 .field input:focus,.field textarea:focus{outline:none;border-color:#c25e1d}
@@ -46,6 +47,26 @@
 .buy-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 18px;border-radius:24px;background:#c25e1d;color:#fff;text-decoration:none;font-weight:bold;font-size:15px}
 .buy-link:hover{background:#a94d14}
 .admin-note{text-align:center;font-size:13px;color:#6d5c4c;margin-top:18px}
+.lock-form{display:none;justify-content:center;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.lock-form.open{display:flex}
+.lock-form .field{flex:0 1 220px}
+.lock-intro{flex:1 1 100%;text-align:center;margin:0 0 4px;font-size:14px;line-height:1.5;color:#6d5c4c}
+.lock-error{flex:1 1 100%;text-align:center;margin:0;font-size:14px;font-weight:bold;color:#a3341a}
+.item-photo{width:100%;height:190px;object-fit:cover;border-radius:10px;background:#e6dbcb;display:block}
+.photo-row{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.photo-row .field{flex:1 1 200px}
+.field input[type=file]{padding:9px 12px;background:#fff}
+.photo-preview{width:78px;height:78px;object-fit:cover;border-radius:10px;border:2px solid #d8cbba;display:none}
+.photo-preview.show{display:block}
+.item-top{position:relative}
+.sold-badge{position:absolute;top:10px;left:10px;background:#a3341a;color:#fff;font-size:12px;font-weight:bold;letter-spacing:.08em;padding:5px 11px;border-radius:20px}
+.item.is-sold .item-photo{opacity:.55}
+.item.is-sold h3,.item.is-sold .price{opacity:.7}
+.sold-note{margin:0;font-size:14px;font-weight:bold;color:#a3341a}
+.status{margin:0 0 18px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.5;text-align:center}
+.status.err{background:#fbe9e4;color:#8f2d16;border:2px solid #e7bfb2}
+.status.ok{background:#e8f2e4;color:#2f5d24;border:2px solid #bcd8b2}
+.loading{text-align:center;padding:34px 18px;color:#6d5c4c}
 </style>
 </head>
 <body>
@@ -91,10 +112,32 @@ Email Us
 <h2>Items For Sale</h2>
 <p class="sub">Ready-made pieces available right now. Text or email us to claim one.</p>
 
+<p class="status" id="status" role="status" hidden></p>
+
 <div class="admin-bar">
 <button type="button" class="btn-sm" id="adminToggle" aria-pressed="false">Manage Items</button>
 <button type="button" class="btn-sm solid" id="showFormBtn" hidden>+ Add Item</button>
+<button type="button" class="btn-sm" id="changePassBtn" hidden>Change Password</button>
 </div>
+
+<form class="lock-form" id="lockForm" aria-label="Manager password">
+<p class="lock-intro" id="lockIntro">Enter your manager password.</p>
+<div class="field" id="currentField" hidden>
+<label for="currentPass">Current password</label>
+<input type="password" id="currentPass" name="currentPass" autocomplete="current-password" placeholder="Current password">
+</div>
+<div class="field">
+<label for="adminPass" id="adminPassLabel">Password</label>
+<input type="password" id="adminPass" name="adminPass" autocomplete="current-password" placeholder="Enter password">
+</div>
+<div class="field" id="confirmField" hidden>
+<label for="adminPass2">Confirm password</label>
+<input type="password" id="adminPass2" name="adminPass2" autocomplete="new-password" placeholder="Re-enter password">
+</div>
+<button type="submit" class="btn-sm solid" id="lockSubmitBtn">Unlock</button>
+<button type="button" class="btn-sm" id="lockCancelBtn">Cancel</button>
+<p class="lock-error" id="lockError" role="alert" hidden>Wrong password. Try again.</p>
+</form>
 
 <form class="item-form" id="itemForm" aria-label="Add an item for sale">
 <div class="field">
@@ -109,6 +152,14 @@ Email Us
 <label for="itemDesc">Description (optional)</label>
 <textarea id="itemDesc" name="itemDesc" rows="2" maxlength="200" placeholder="12x18 walnut, engraved family name"></textarea>
 </div>
+<div class="photo-row">
+<div class="field">
+<label for="itemPhoto">Photo (optional)</label>
+<input type="file" id="itemPhoto" name="itemPhoto" accept="image/*">
+</div>
+<img id="photoPreview" class="photo-preview" alt="Selected item photo preview">
+<button type="button" class="btn-sm danger" id="clearPhotoBtn" hidden>Remove Photo</button>
+</div>
 <div class="actions">
 <button type="submit" class="btn-sm solid" id="saveBtn">Save Item</button>
 <button type="button" class="btn-sm" id="cancelBtn">Cancel</button>
@@ -116,7 +167,7 @@ Email Us
 </form>
 
 <div class="items" id="itemList"></div>
-<p class="admin-note" id="adminNote" hidden>Your items are saved in this browser only.</p>
+<p class="admin-note" id="adminNote" hidden>Add a photo to any item with the <strong>Photo</strong> picker. Everything you save here is live for every visitor right away. Use <strong>Mark Sold</strong> to keep a piece on display once it&apos;s gone.</p>
 </div>
 </section>
 <section class="idea">
