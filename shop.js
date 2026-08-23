@@ -1,21 +1,39 @@
 (function () {
   var STORE_KEY = "yge_items_v1";
-  var ADMIN_KEY = "yge_admin_v1";
+  var SESSION_KEY = "yge_admin_session";
+  var PASS_HASH = 3338776954; // hash of the manager password
+  var MAX_DIM = 900;
 
   var list = document.getElementById("itemList");
   var form = document.getElementById("itemForm");
   var nameInput = document.getElementById("itemName");
   var priceInput = document.getElementById("itemPrice");
   var descInput = document.getElementById("itemDesc");
+  var photoInput = document.getElementById("itemPhoto");
+  var photoPreview = document.getElementById("photoPreview");
+  var clearPhotoBtn = document.getElementById("clearPhotoBtn");
   var adminToggle = document.getElementById("adminToggle");
   var showFormBtn = document.getElementById("showFormBtn");
   var cancelBtn = document.getElementById("cancelBtn");
   var saveBtn = document.getElementById("saveBtn");
   var adminNote = document.getElementById("adminNote");
+  var lockForm = document.getElementById("lockForm");
+  var passInput = document.getElementById("adminPass");
+  var lockError = document.getElementById("lockError");
+  var lockCancelBtn = document.getElementById("lockCancelBtn");
 
   var editingId = null;
   var admin = false;
   var items = [];
+  var pendingPhoto = "";
+
+  function hash(str) {
+    var h = 5381;
+    for (var i = 0; i < str.length; i++) {
+      h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    }
+    return h;
+  }
 
   function load() {
     try {
@@ -26,7 +44,7 @@
       items = [];
     }
     try {
-      admin = localStorage.getItem(ADMIN_KEY) === "1";
+      admin = sessionStorage.getItem(SESSION_KEY) === "1";
     } catch (e) {
       admin = false;
     }
@@ -35,8 +53,12 @@
   function save() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(items));
+      return true;
     } catch (e) {
-      /* storage unavailable */
+      window.alert(
+        "Couldn't save — your browser storage is full. Try removing an item or using a smaller photo."
+      );
+      return false;
     }
   }
 
@@ -52,6 +74,50 @@
       money(item.price) +
       ").";
     return "sms:+17656985522?&body=" + encodeURIComponent(body);
+  }
+
+  /* Shrink an image file down to a data URL that fits in local storage. */
+  function readPhoto(file, done) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.width;
+        var h = img.height;
+        var scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        try {
+          done(canvas.toDataURL("image/jpeg", 0.72));
+        } catch (e) {
+          done("");
+        }
+      };
+      img.onerror = function () {
+        done("");
+      };
+      img.src = String(reader.result);
+    };
+    reader.onerror = function () {
+      done("");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function setPreview(src) {
+    pendingPhoto = src || "";
+    if (pendingPhoto) {
+      photoPreview.src = pendingPhoto;
+      photoPreview.classList.add("show");
+      clearPhotoBtn.hidden = false;
+    } else {
+      photoPreview.removeAttribute("src");
+      photoPreview.classList.remove("show");
+      clearPhotoBtn.hidden = true;
+    }
   }
 
   function render() {
@@ -70,6 +136,15 @@
     items.forEach(function (item) {
       var card = document.createElement("article");
       card.className = "item";
+
+      if (item.photo) {
+        var photo = document.createElement("img");
+        photo.className = "item-photo";
+        photo.src = item.photo;
+        photo.alt = item.name;
+        photo.loading = "lazy";
+        card.appendChild(photo);
+      }
 
       var h3 = document.createElement("h3");
       h3.textContent = item.name;
@@ -124,11 +199,24 @@
   }
 
   function syncAdminUI() {
-    adminToggle.textContent = admin ? "Done Managing" : "Manage Items";
+    adminToggle.textContent = admin ? "Lock Items" : "Manage Items";
     adminToggle.setAttribute("aria-pressed", admin ? "true" : "false");
     showFormBtn.hidden = !admin;
     adminNote.hidden = !admin;
     if (!admin) closeForm();
+  }
+
+  function openLock() {
+    lockError.hidden = true;
+    lockForm.classList.add("open");
+    passInput.value = "";
+    passInput.focus();
+  }
+
+  function closeLock() {
+    lockForm.classList.remove("open");
+    lockForm.reset();
+    lockError.hidden = true;
   }
 
   function openForm() {
@@ -139,6 +227,7 @@
   function closeForm() {
     form.classList.remove("open");
     form.reset();
+    setPreview("");
     editingId = null;
     saveBtn.textContent = "Save Item";
   }
@@ -148,10 +237,12 @@
       return i.id === id;
     })[0];
     if (!item) return;
+    closeForm();
     editingId = id;
     nameInput.value = item.name;
     priceInput.value = item.price;
     descInput.value = item.desc || "";
+    setPreview(item.photo || "");
     saveBtn.textContent = "Update Item";
     openForm();
   }
@@ -166,14 +257,59 @@
   }
 
   adminToggle.addEventListener("click", function () {
-    admin = !admin;
+    if (admin) {
+      admin = false;
+      try {
+        sessionStorage.removeItem(SESSION_KEY);
+      } catch (e) {
+        /* storage unavailable */
+      }
+      closeLock();
+      syncAdminUI();
+      render();
+      return;
+    }
+    if (lockForm.classList.contains("open")) closeLock();
+    else openLock();
+  });
+
+  lockForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (hash(passInput.value) !== PASS_HASH) {
+      lockError.hidden = false;
+      passInput.value = "";
+      passInput.focus();
+      return;
+    }
+    admin = true;
     try {
-      localStorage.setItem(ADMIN_KEY, admin ? "1" : "0");
+      sessionStorage.setItem(SESSION_KEY, "1");
     } catch (e) {
       /* storage unavailable */
     }
+    closeLock();
     syncAdminUI();
     render();
+  });
+
+  lockCancelBtn.addEventListener("click", closeLock);
+
+  photoInput.addEventListener("change", function () {
+    var file = photoInput.files && photoInput.files[0];
+    if (!file) return;
+    readPhoto(file, function (src) {
+      if (!src) {
+        window.alert("That image couldn't be read. Try a different photo.");
+        photoInput.value = "";
+        return;
+      }
+      setPreview(src);
+    });
+  });
+
+  clearPhotoBtn.addEventListener("click", function () {
+    photoInput.value = "";
+    setPreview("");
   });
 
   showFormBtn.addEventListener("click", function () {
@@ -188,12 +324,15 @@
     var name = nameInput.value.trim();
     var price = parseFloat(priceInput.value);
     var desc = descInput.value.trim();
+    var photo = pendingPhoto;
     if (!name || isNaN(price) || price < 0) return;
+
+    var snapshot = items.slice();
 
     if (editingId) {
       items = items.map(function (i) {
         return i.id === editingId
-          ? { id: i.id, name: name, price: price, desc: desc }
+          ? { id: i.id, name: name, price: price, desc: desc, photo: photo }
           : i;
       });
     } else {
@@ -202,10 +341,14 @@
         name: name,
         price: price,
         desc: desc,
+        photo: photo,
       });
     }
 
-    save();
+    if (!save()) {
+      items = snapshot;
+      return;
+    }
     closeForm();
     render();
   });
