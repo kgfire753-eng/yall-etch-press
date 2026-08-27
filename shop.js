@@ -2,8 +2,8 @@
   /* ---------- payment handles ----------
      Put your handles here, without the @ or $ signs.
      Leave one blank to hide that button everywhere. */
-  var VENMO_USERNAME = ""; // example: "YallGetEtched"
-  var CASHAPP_CASHTAG = ""; // example: "YallGetEtched"
+  var VENMO_USERNAME = "wayne-gipson-3";
+  var CASHAPP_CASHTAG = "waynegips";
 
   var LEGACY_KEY = "yge_items_v1";
   var IMPORTED_KEY = "yge_imported_v1";
