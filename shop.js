@@ -1,4 +1,10 @@
 (function () {
+  /* ---------- payment handles ----------
+     Put your handles here, without the @ or $ signs.
+     Leave one blank to hide that button everywhere. */
+  var VENMO_USERNAME = "wayne-gipson-3";
+  var CASHAPP_CASHTAG = "waynegips";
+
   var LEGACY_KEY = "yge_items_v1";
   var IMPORTED_KEY = "yge_imported_v1";
   var MAX_DIM = 900;
@@ -90,6 +96,73 @@
     var body =
       "Hi Y'all Get Etched! I'm interested in the " + item.name + " (" + money(item.price) + ").";
     return "sms:+17656985522?&body=" + encodeURIComponent(body);
+  }
+
+  function payNote(item) {
+    return "Y'all Get Etched - " + item.name;
+  }
+
+  function venmoLink(item) {
+    return (
+      "https://venmo.com/" +
+      encodeURIComponent(VENMO_USERNAME) +
+      "?txn=pay&amount=" +
+      Number(item.price).toFixed(2) +
+      "&note=" +
+      encodeURIComponent(payNote(item))
+    );
+  }
+
+  function cashAppLink(item) {
+    return (
+      "https://cash.app/$" +
+      encodeURIComponent(CASHAPP_CASHTAG) +
+      "/" +
+      Number(item.price).toFixed(2)
+    );
+  }
+
+  function payLink(kind, item) {
+    var a = document.createElement("a");
+    a.className = "pay-link " + (kind === "venmo" ? "pay-venmo" : "pay-cash");
+    a.href = kind === "venmo" ? venmoLink(item) : cashAppLink(item);
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.appendChild(payIcon());
+    a.appendChild(
+      document.createTextNode(kind === "venmo" ? "Pay with Venmo" : "Cash App Pay")
+    );
+    a.setAttribute(
+      "aria-label",
+      (kind === "venmo" ? "Pay with Venmo" : "Pay with Cash App") +
+        " for " +
+        item.name +
+        ", " +
+        money(item.price)
+    );
+    return a;
+  }
+
+  function payIcon() {
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    var rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", "2");
+    rect.setAttribute("y", "5");
+    rect.setAttribute("width", "20");
+    rect.setAttribute("height", "14");
+    rect.setAttribute("rx", "2");
+    var line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    line.setAttribute("d", "M2 10h20");
+    svg.appendChild(rect);
+    svg.appendChild(line);
+    return svg;
   }
 
   /* Shrink an image before it ever leaves the browser. */
@@ -226,6 +299,17 @@
         buy.href = smsLink(item);
         buy.textContent = "Text to Buy";
         actions.appendChild(buy);
+
+        if (VENMO_USERNAME) actions.appendChild(payLink("venmo", item));
+        if (CASHAPP_CASHTAG) actions.appendChild(payLink("cashapp", item));
+
+        if (VENMO_USERNAME || CASHAPP_CASHTAG) {
+          var payHint = document.createElement("p");
+          payHint.className = "pay-note";
+          payHint.textContent =
+            "Paying by app? Text us after so we can set this one aside for you.";
+          actions.appendChild(payHint);
+        }
       }
 
       card.appendChild(actions);

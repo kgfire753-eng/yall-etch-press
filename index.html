@@ -39,13 +39,20 @@
 .item h3{margin:0;font-size:19px}
 .item .price{font-size:24px;font-weight:bold;color:#c25e1d}
 .item .desc{margin:0;font-size:15px;line-height:1.5}
-.item .item-actions{margin-top:auto;display:flex;gap:10px;padding-top:6px}
+.item .item-actions{margin-top:auto;display:flex;flex-wrap:wrap;gap:10px;padding-top:6px}
 .item .btn-sm{flex:1}
 .btn-sm.danger{border-color:#a3341a;color:#a3341a}
 .btn-sm.danger:hover{background:#fbe9e4}
 .empty{text-align:center;padding:34px 18px;border:2px dashed #d8cbba;border-radius:14px;color:#6d5c4c}
-.buy-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 18px;border-radius:24px;background:#c25e1d;color:#fff;text-decoration:none;font-weight:bold;font-size:15px}
+.buy-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 18px;border-radius:24px;background:#c25e1d;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;flex:1 1 100%}
 .buy-link:hover{background:#a94d14}
+.pay-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:1 1 120px;min-height:44px;padding:11px 14px;border-radius:24px;text-decoration:none;font-weight:bold;font-size:15px;line-height:1.2;color:#fff}
+.pay-link svg{width:16px;height:16px;flex:none}
+.pay-venmo{background:#008cff}
+.pay-venmo:hover{background:#0072d1}
+.pay-cash{background:#00c244}
+.pay-cash:hover{background:#00a038}
+.pay-note{margin:0;font-size:12px;line-height:1.45;color:#6d5c4c;flex:1 1 100%}
 .admin-note{text-align:center;font-size:13px;color:#6d5c4c;margin-top:18px}
 .lock-form{display:none;justify-content:center;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:22px}
 .lock-form.open{display:flex}
