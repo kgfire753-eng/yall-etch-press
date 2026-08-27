@@ -74,6 +74,9 @@
 .status.err{background:#fbe9e4;color:#8f2d16;border:2px solid #e7bfb2}
 .status.ok{background:#e8f2e4;color:#2f5d24;border:2px solid #bcd8b2}
 .loading{text-align:center;padding:34px 18px;color:#6d5c4c}
+.visit-counter{display:inline-flex;align-items:baseline;gap:7px;margin:16px 0 0;padding:7px 16px;border:1px solid rgba(255,255,255,.28);border-radius:22px}
+.visit-count{font-size:19px;font-weight:bold;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.visit-label{font-size:13px;opacity:.75}
 </style>
 </head>
 <body>
@@ -181,7 +184,13 @@ Email Us
 <h2>Got an Idea?</h2>
 <p>Bring us a photo, logo, wording or even a rough sketch. We'll work with you to turn your idea into a custom piece made just for you.</p>
 </section>
-<footer><strong>Y'all Get Etched</strong><br>Custom Made • One of a Kind</footer>
+<footer>
+<strong>Y'all Get Etched</strong><br>Custom Made • One of a Kind
+<p class="visit-counter" id="visitCounter" hidden>
+<span class="visit-count" id="visitCount">0</span>
+<span class="visit-label">visitors so far</span>
+</p>
+</footer>
 <nav class="mobile-cta" aria-label="Contact and orders">
 <a class="btn btn-primary" href="sms:+17656985522?&amp;body=Hi%20Y'all%20Get%20Etched!%20I'd%20like%20a%20quote%20on%20a%20custom%20piece.">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

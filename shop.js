@@ -687,6 +687,24 @@
       });
   });
 
+  /* ---------- visitor counter ---------- */
+
+  function showVisits(total) {
+    var wrap = document.getElementById("visitCounter");
+    var out = document.getElementById("visitCount");
+    if (!wrap || !out) return;
+    out.textContent = Number(total).toLocaleString();
+    wrap.hidden = false;
+  }
+
+  // Counts this visit, then shows the running total. Stays hidden if it fails,
+  // so a counter problem never distracts from the shop.
+  api("/api/visits", { method: "POST" })
+    .then(function (data) {
+      showVisits(data.total);
+    })
+    .catch(function () {});
+
   /* ---------- start ---------- */
 
   render();
